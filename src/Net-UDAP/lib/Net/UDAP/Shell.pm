@@ -477,8 +477,10 @@ sub show_devices {
     printf $list_format, '=' x 2, '=' x 17, '=' x 10, '=' x 15;
     foreach my $device (@device_list) {
         if ( ref($device) eq 'Net::UDAP::Client' ) {
+	    my $device_type = $device->device_type ? $device->device_type : "uknown";
+	    my $device_status = $device->device_status ?  $device->device_status : "uknown";
             printf $list_format, $count, $device->mac,
-                $device->device_type, $device->device_status;
+                $device_type , $device_status;
             $count++;
         }
     }
