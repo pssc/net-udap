@@ -304,9 +304,10 @@ __PACKAGE__->mk_accessors( keys %field_default );
             || croak('ucp_method invalid or not defined.');
 
         my $mac = decode_mac( $msg_ref->src_mac ) if $msg_ref->src_mac;
+	my $re = (unpack('C' ,$msg_ref->ucp_flags) > 0 ) ? "request" : "responce";
         return if !$mac;
         log( info =>
-                ">>> $ucp_method_name->{$method} response received from $mac\n"
+                ">>> $ucp_method_name->{$method} $re received from $mac\n"
         );
         return $handler->( $self, $msg_ref );
     }
