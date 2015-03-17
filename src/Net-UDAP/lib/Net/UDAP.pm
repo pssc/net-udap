@@ -114,8 +114,8 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my ( $self, $mac, $arg_ref ) = @_;
         $arg_ref = {} unless ref($arg_ref) eq 'HASH';
 
-        $arg_ref->{mac} = $mac
-            unless exists $arg_ref->{mac};
+       #$arg_ref->{mac} = $mac
+       #     unless exists $arg_ref->{mac};
 
         if ( $self->send_msg( $mac, UCP_METHOD_GET_IP, $arg_ref ) ) {
             $self->read_responses;
@@ -127,8 +127,8 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my ( $self, $mac, $arg_ref ) = @_;
         $arg_ref = {} unless ref($arg_ref) eq 'HASH';
 
-        $arg_ref->{mac} = $mac
-            unless exists $arg_ref->{mac};
+        #$arg_ref->{mac} = $mac
+        #    unless exists $arg_ref->{mac};
 
         if ( $self->send_msg( $mac, UCP_METHOD_SET_IP, $arg_ref ) ) {
             $self->read_responses;
@@ -140,8 +140,8 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my ( $self, $mac, $arg_ref ) = @_;
         $arg_ref = {} unless ref($arg_ref) eq 'HASH';
 
-        $arg_ref->{mac} = $mac
-            unless exists $arg_ref->{mac};
+        #$arg_ref->{mac} = $mac
+        #    unless exists $arg_ref->{mac};
 
         if ( $self->send_msg( $mac, UCP_METHOD_GET_DATA, $arg_ref ) ) {
             $self->read_responses;
@@ -153,8 +153,8 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my ( $self, $mac, $arg_ref ) = @_;
         $arg_ref = {} unless ref($arg_ref) eq 'HASH';
 
-        $arg_ref->{mac} = $mac
-            unless exists $arg_ref->{mac};
+        #$arg_ref->{mac} = $mac
+        #    unless exists $arg_ref->{mac};
 
         if ( $self->send_msg( $mac, UCP_METHOD_SET_DATA, $arg_ref ) ) {
             $self->read_responses;
@@ -166,10 +166,51 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my ( $self, $mac ) = @_;
 
         if ( $self->send_msg( $mac, UCP_METHOD_RESET ) ) {
-            $self->read_responses;
+        #    $self->read_responses;
         }
         return;
-
+    }
+    sub pause {
+        my ( $self, $mac ) = @_;
+        if ( $self->send_msg( $mac, UCP_METHOD_PAUSE ) ) {
+        #    $self->read_responses;
+        }
+        return;
+    }
+    sub fwd {
+        my ( $self, $mac ) = @_;
+        if ( $self->send_msg( $mac, UCP_METHOD_FWD ) ) {
+        #    $self->read_responses;
+        }
+        return;
+    }
+    sub rev {
+        my ( $self, $mac ) = @_;
+        if ( $self->send_msg( $mac, UCP_METHOD_REV ) ) {
+        #    $self->read_responses;
+        }
+        return;
+    }
+    sub preset {
+        my ( $self, $mac, $args ) = @_;
+        if ( $self->send_msg( $mac, UCP_METHOD_PRESET, $args ) ) {
+        #    $self->read_responses;
+        }
+        return;
+    }
+    sub set_power {
+        my ( $self, $mac, $args ) = @_;
+        if ( $self->send_msg( $mac, UCP_METHOD_SET_POWER, $args ) ) {
+        #    $self->read_responses;
+        }
+        return;
+    }
+    sub set_volume {
+        my ( $self, $mac ,$args) = @_;
+        if ( $self->send_msg( $mac, UCP_METHOD_SET_VOLUME, $args ) ) {
+        #    $self->read_responses;
+        }
+        return;
     }
 
     sub send_msg {
@@ -197,17 +238,16 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my $msg_ref;
         eval {
             $msg_ref = Net::UDAP::MessageOut->new(
-                {   ucp_method  => $ucp_method,
-                    dst_mac     => $encoded_mac,
-                    data_to_get => $arg_ref->{data_to_get},
-                    data_to_set => $arg_ref->{data_to_set},
-                }
-            );
-            }
-            or do {
+            {   ucp_method  => $ucp_method,
+                dst_mac     => $encoded_mac,
+                data_to_get => $arg_ref->{data_to_get},
+                data_to_set => $arg_ref->{data_to_set},
+	        #seq	    => $self->seq,
+            });
+        } or do {
             carp($@);
             return;
-            };
+        };
         log( debug => format_hex( $msg_ref->packed ) );
         foreach my $interface ( @{ $self->interfaces } ) {
             log( debug => "sending on interface $interface" );
@@ -226,26 +266,32 @@ __PACKAGE__->mk_accessors( keys %field_default );
     sub read_responses {
         my ($self) = @_;
 
-        # Wait a while
-        select( undef, undef, undef, UDAP_TIMEOUT );
+	# Socket list
+	my @sockets = $self->socket_in;
+	foreach my $interface ( @{ $self->interfaces } ) {
+		push @sockets,$self->sockets->{$interface};
+	}
 
         # read responses
-        while ( $self->read_UDP ) { }
+	foreach my $socket (@sockets) {
+		while ( $self->read_UDP($socket)) {
+		}
+	}
         return;
     }
 
     sub read_UDP {
-        my ($self) = @_;
+        my ($self, $socket_in) = @_;
 
         log( debug => '    read_UDP triggered' );
 
         my $packet_received = 0;
 
-        my $select = IO::Select->new( $self->socket_in );
-        while ( $select->can_read(1) ) {
+        my $select = IO::Select->new( $socket_in );
+        while ( $select->can_read(UDAP_TIMEOUT) ) {
             log( debug => '    in read_UDP select loop' );
             if ( my $clientpaddr
-                = $self->socket_in->recv( my $raw_msg, UDP_MAX_MSG_LEN ) )
+                = $socket_in->recv( my $raw_msg, UDP_MAX_MSG_LEN ) )
             {
 
                 $packet_received = 1;
@@ -256,7 +302,7 @@ __PACKAGE__->mk_accessors( keys %field_default );
 
                 # Don't process packets we sent
                 if ( exists $self->local_ips->{$src_ip_a} ) {
-                    log(debug => '  Ignoring packet sent from this machine' );
+                    log(debug => "  Ignoring packet sent from this machine $src_ip_a" );
                     next;
                 }
 
@@ -264,6 +310,7 @@ __PACKAGE__->mk_accessors( keys %field_default );
             }
 
         }
+        log( debug => "    select loop exit $packet_received" );
         return $packet_received;
     }
 
@@ -293,7 +340,7 @@ __PACKAGE__->mk_accessors( keys %field_default );
         my $msg_ref;
         eval {
             $msg_ref = Net::UDAP::MessageIn->new( { raw_msg => $raw_msg } );
-        } or return;
+        };
         if ($@) {
             carp($@);
             return;
@@ -304,8 +351,10 @@ __PACKAGE__->mk_accessors( keys %field_default );
             || croak('ucp_method invalid or not defined.');
 
         my $mac = decode_mac( $msg_ref->src_mac ) if $msg_ref->src_mac;
+        if (!$mac) {
+		log( error => '>>> processing packet for mac' );
+	}
 	my $re = (unpack('C' ,$msg_ref->ucp_flags) > 0 ) ? "request" : "responce";
-        return if !$mac;
         log( info =>
                 ">>> $ucp_method_name->{$method} $re received from $mac\n"
         );

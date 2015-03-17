@@ -45,7 +45,7 @@ use Exporter qw(import);
         qw( UCP_CODE_ZERO UCP_CODE_ONE UCP_CODE_DEVICE_NAME UCP_CODE_DEVICE_TYPE UCP_CODE_USE_DHCP UCP_CODE_IP_ADDR UCP_CODE_SUBNET_MASK UCP_CODE_GATEWAY_ADDR UCP_CODE_EIGHT UCP_CODE_FIRMWARE_REV UCP_CODE_HARDWARE_REV UCP_CODE_DEVICE_ID UCP_CODE_DEVICE_STATUS UCP_CODE_UUID )
     ],
     UCP_METHODS => [
-        qw( UCP_METHOD_ZERO UCP_METHOD_DISCOVER UCP_METHOD_GET_IP UCP_METHOD_SET_IP UCP_METHOD_RESET UCP_METHOD_GET_DATA UCP_METHOD_SET_DATA UCP_METHOD_ERROR UCP_METHOD_CREDENTIALS_ERROR UCP_METHOD_ADV_DISCOVER UCP_METHOD_TEN )
+        qw( UCP_METHOD_ZERO UCP_METHOD_DISCOVER UCP_METHOD_GET_IP UCP_METHOD_SET_IP UCP_METHOD_RESET UCP_METHOD_GET_DATA UCP_METHOD_SET_DATA UCP_METHOD_ERROR UCP_METHOD_CREDENTIALS_ERROR UCP_METHOD_ADV_DISCOVER UCP_METHOD_TEN UCP_METHOD_GET_UUID UCP_METHOD_SET_VOLUME UCP_METHOD_PAUSE UCP_METHOD_GET_PIN UCP_METHOD_FIFTEEN UCP_METHOD_FWD UCP_METHOD_REV UCP_METHOD_PRESET UCP_METHOD_SET_POWER )
     ],
     WLAN_MODES       => [qw( WLAN_MODE_INFRASTRUCTURE WLAN_MODE_ADHOC )],
     WLAN_REGIONS_ATH => [
@@ -129,6 +129,14 @@ use constant UCP_METHOD_CREDENTIALS_ERROR => pack( 'CC', 0x00, 0x08 );
 use constant UCP_METHOD_ADV_DISCOVER      => pack( 'CC', 0x00, 0x09 );
 use constant UCP_METHOD_TEN               => pack( 'CC', 0x00, 0x0A );
 use constant UCP_METHOD_GET_UUID          => pack( 'CC', 0x00, 0x0B );
+use constant UCP_METHOD_SET_VOLUME        => pack( 'CC', 0x00, 0x0C );
+use constant UCP_METHOD_PAUSE             => pack( 'CC', 0x00, 0x0D );
+use constant UCP_METHOD_GET_PIN           => pack( 'CC', 0x00, 0x0E );
+use constant UCP_METHOD_FIFTEEN           => pack( 'CC', 0x00, 0x0F );
+use constant UCP_METHOD_FWD               => pack( 'CC', 0x00, 0x10 );
+use constant UCP_METHOD_REV               => pack( 'CC', 0x00, 0x11 );
+use constant UCP_METHOD_PRESET            => pack( 'CC', 0x00, 0x12 );
+use constant UCP_METHOD_SET_POWER         => pack( 'CC', 0x00, 0x13 );
 
 # Lookup hash mapping ucp_method constants to name strings
 $ucp_method_name = {
@@ -144,6 +152,13 @@ $ucp_method_name = {
     UCP_METHOD_ADV_DISCOVER,      'adv_discovery',
     UCP_METHOD_TEN,               undef,
     UCP_METHOD_GET_UUID,          'get_uuid',
+    UCP_METHOD_SET_VOLUME,        'set_volume',
+    UCP_METHOD_PAUSE,             'pause',
+    UCP_METHOD_GET_PIN,           'get_pin',
+    UCP_METHOD_FWD,		  'fwd',
+    UCP_METHOD_REV,		  'rev',
+    UCP_METHOD_PRESET,		  'preset',
+    UCP_METHOD_SET_POWER,	  'set_power',
 };
 
 # Wireless modes

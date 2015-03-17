@@ -20,7 +20,7 @@ package Net::UDAP::Shell;
 use strict;
 use warnings;
 
-use version; our $VERSION = qv('1.0_01');
+use version; our $VERSION = qv('1.0_02');
 
 use Data::Dumper;
 use File::Spec::Functions;
@@ -47,7 +47,7 @@ use Net::UDAP::Constant;
 
 # my $discovered_devices = undef;   # hash ref containing refs to device objects
 # for all devices found; keyed on MAC
-my @device_list = undef;    # array containing refs to device objects
+my @device_list = ();    # array containing refs to device objects
                             # for all devices found;
 my $udap;                   # object used to access all UDAP methods, etc.
 
@@ -169,6 +169,54 @@ sub run_fields {
         [ @$field_help_from_name{@sorted_field_names} ] );
 }
 
+######## preset ######
+
+sub smry_preset {'preset <n> <n>|all'}
+
+sub help_preset {'Set playlist to preset <n> and play'}
+
+sub run_preset { &runner(2,@_); }
+
+######## power ########
+
+sub smry_power {'power on|off <n>|all'}
+
+sub help_power {'device power sate on|off'}
+
+sub run_power { &runner(2,@_); }
+
+######## volume ########
+
+sub smry_volume {'volume <n> <n>|all'}
+
+sub help_volume {'set player volume to <0.255>'}
+
+sub run_volume { &runner(2,@_); }
+
+######## rev ########
+
+sub smry_rev {'rev request [<n>|all]'}
+
+sub help_rev {'fwd in playlist'}
+
+sub run_rev { &runner(1,@_); }
+
+######## fwd ########
+
+sub smry_fwd {'fwd request [<n>|all]'}
+
+sub help_fwd {'fwd in playlist'}
+
+sub run_fwd { &runner(1,@_); }
+
+######## pause ########
+
+sub smry_pause {'pause device [<n>|all]'}
+
+sub help_pause {'pause device only will not restart'}
+
+sub run_pause { &runner(1,@_); }
+
 ######## Set ########
 
 sub smry_set {'Set device parameter(s)'}
@@ -214,45 +262,7 @@ In global mode:
     save [n]   - save data parameters to device n
 END
 
-sub run_save_data {
-    my ( $self, @args ) = @_;
-    my $nargs = scalar(@args);
-    if ( defined $current_device ) {
-
-        # configure mode
-        if ( $nargs == 0 ) {
-            $device_list[$current_device]->save_data($udap);
-        }
-        else {
-            print "Syntax error in save_data command\n";
-        }
-
-    }
-    else {
-    SWITCH: {
-            ( $nargs == 0 )
-                or ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) ) and do {
-
-                last SWITCH;
-                };
-            (           ( $nargs == 1 )
-                    and ( looks_like_number( $args[0] ) )
-                    and (
-                    ref( $device_list[ $args[0] - 1 ] ) eq
-                    'Net::UDAP::Client' )
-                )
-                and do {
-                foreach my $device (@device_list) {
-                    $device->save_data($udap);
-                }
-                last SWITCH;
-                };
-            print "Syntax error in save_data command\n";
-        }
-
-        # global mode
-    }
-}
+sub run_save_data { &runner(1,@_) };
 
 ######## save_ip ########
 
@@ -265,45 +275,7 @@ In global mode:
     save [n]   - save ip parameters to device n
 END
 
-sub run_save_ip {
-    my ( $self, @args ) = @_;
-    my $nargs = scalar(@args);
-    if ( defined $current_device ) {
-
-        # configure mode
-        if ( $nargs == 0 ) {
-            $device_list[$current_device]->save_ip($udap);
-        }
-        else {
-            print "Syntax error in save_ip command\n";
-        }
-
-    }
-    else {
-    SWITCH: {
-            ( $nargs == 0 )
-                or ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) ) and do {
-
-                last SWITCH;
-                };
-            (           ( $nargs == 1 )
-                    and ( looks_like_number( $args[0] ) )
-                    and (
-                    ref( $device_list[ $args[0] - 1 ] ) eq
-                    'Net::UDAP::Client' )
-                )
-                and do {
-                foreach my $device (@device_list) {
-                    $device->save_ip($udap);
-                }
-                last SWITCH;
-                };
-            print "Syntax error in save_ip command\n";
-        }
-
-        # global mode
-    }
-}
+sub run_save_ip { &runner(1,@_); }
 
 ######## reset ########
 
@@ -312,60 +284,10 @@ sub smry_reset {'Reset a device'}
 sub help_reset {
     <<'END' }
 Reset a device
+    Reset [<n>|all] - Reset device(s)
 END
 
-sub run_reset {
-    my ( $self, @args ) = @_;
-    my $nargs = scalar(@args);
-    if ( defined $current_device ) {
-
-        # configure mode
-    SWITCH: {
-
-            # 'list' or 'list all'
-            ( $nargs == 0 ) and do {
-                $device_list[$current_device]->reset($udap);
-                last SWITCH;
-            };
-            print "reset command not valid\n";
-        }
-    }
-    else {
-
-        # global mode
-    SWITCH: {
-            (          ( $nargs == 0 )
-                    or ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) )
-                )
-                and do {
-
-                # reset all devices
-                foreach my $device (@device_list) {
-                    $device->reset($udap);
-                }
-                last SWITCH;
-                };
-            (           ( $nargs == 1 )
-                    and ( looks_like_number( $args[0] ) )
-                    and (
-                    ref( $device_list[ $args[0] - 1 ] ) eq
-                    'Net::UDAP::Client' )
-                )
-                and do {
-
-                # list all details of one device
-                # NB. The user will use device 1, 2, 3, etc. while the array
-                #     index starts at 0; hence the need to subtract one from
-                #     the number supplied by the user
-                $self->list_device( $device_list[ $args[0] - 1 ] );
-                last SWITCH;
-                };
-
-            # default SWITCH action here
-            print "Syntax error in list command\n";
-        }
-    }
-}
+sub run_reset { &runner(1,@_); }
 
 ######## List ########
 
@@ -388,50 +310,40 @@ sub run_list {
     my ( $self, @args ) = @_;
     my $nargs = scalar(@args);
     if ( defined $current_device ) {
-
-        # configure mode
-    SWITCH: {
-
-            # 'list' or 'list all'
-            ( $nargs == 0 )
-                or ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) ) and do {
+       # configure mode
+       SWITCH: {
+            ( ( $nargs == 0 ) or
+              ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) )
+            ) and do {
                 $self->list_device( $device_list[$current_device] );
                 last SWITCH;
-                };
+            };
 
             # send all supplied params to list_device sub
             $self->list_device( $device_list[$current_device],
-                ($nargs) ? [@args] : undef );
+                                ($nargs) ? [@args] : undef );
         }
-    }
-    else {
-
+    } else {
         # global mode
-    SWITCH: {
-            (          ( $nargs == 0 )
-                    or ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) )
-                )
-                and do {
-
+        SWITCH: {
+            ( ( $nargs == 0 ) or
+              ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) )
+            ) and do {
                 # list all devices
                 $self->show_devices;
                 last SWITCH;
-                };
-            (           ( $nargs == 1 )
-                    and ( looks_like_number( $args[0] ) )
-                    and (
-                    ref( $device_list[ $args[0] - 1 ] ) eq
-                    'Net::UDAP::Client' )
-                )
-                and do {
-
+            };
+            ( ( $nargs == 1 ) and
+              ( looks_like_number($args[0]) ) and
+              ( ref( $device_list[ $args[0] - 1 ] ) eq 'Net::UDAP::Client' )
+            ) and do {
                 # list all details of one device
                 # NB. The user will use device 1, 2, 3, etc. while the array
                 #     index starts at 0; hence the need to subtract one from
                 #     the number supplied by the user
                 $self->list_device( $device_list[ $args[0] - 1 ] );
                 last SWITCH;
-                };
+            };
 
             # default SWITCH action here
             print "Syntax error in list command\n";
@@ -469,6 +381,56 @@ sub run_configure {
 }
 
 ######## non-command routines ########
+
+sub all_or_n {
+    my ( $routine, $n, $self, @args ) = @_;
+    my $nargs = scalar(@args);
+    my $package = 'Net::UDAP::Client';
+    my $code = $package->can($routine);
+    print "$routine uknown in $package\n" and return if not $code;
+    if ( defined $current_device ) {
+        # configure mode
+        if ( $nargs == 0 ) {
+           $device_list[$current_device]->$code($udap);
+        } else {
+           print "Syntax error in $routine command\n";
+        }
+    } else {
+       SWITCH: {
+            ( ( $nargs == 0 ) or
+              ( ( $nargs == 1 ) and ( $args[0] eq 'all' ) )
+            ) and do {
+                   foreach my $device (@device_list) {
+			$device->$code($udap);
+                   }
+                   last SWITCH;
+            };
+            ( ( $nargs == 1 ) and
+              ( looks_like_number( $args[0] ) ) and
+              ( ref( $device_list[ $args[0] - 1 ] ) eq $package )
+            ) and do {
+                    $device_list[$args[0]-1]->$code($udap);
+                    last SWITCH;
+            };
+            ( ( $nargs > 1 ) and
+              ( looks_like_number( $args[-1] ) ) and
+              ( ref( $device_list[ $args[-1] - 1 ] ) eq $package ) and
+	      ( $n == $nargs )
+            ) and do {
+                    $device_list[(pop @args)-1]->$code($udap,@args);
+                    last SWITCH;
+            };
+            print "Syntax error in $routine command\n";
+       }
+   }
+}
+
+sub runner {
+   my  $package = (caller(1))[3];
+   $package =~ s/.+::run_//;
+   print "$package\n"; #Fix me log
+   all_or_n($package, @_);
+}
 
 sub show_devices {
     my $list_format = "%2s %-17s %-10s %-15s\n";

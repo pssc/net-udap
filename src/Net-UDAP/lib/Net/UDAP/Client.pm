@@ -34,6 +34,7 @@ my %other_codes_default = (
 
     # Other
     mac                => undef,
+    seq		       => 1,
     fields_from_device => {},
 );
 
@@ -90,7 +91,6 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
     sub save_ip {
         my ( $self, $udap ) = @_;
         my $device_mac  = $self->mac;
-        my $data_to_set = $self->modified_fields;
         $udap->set_ip(
             $device_mac,
             {   data_to_set => {
@@ -108,6 +108,38 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
         $udap->reset( $self->mac );
     }
 
+    sub pause {
+        my ( $self, $udap ) = @_;
+        $udap->pause( $self->mac );
+    }
+
+    sub fwd {
+        my ( $self, $udap ) = @_;
+        $udap->fwd( $self->mac );
+    }
+
+    sub rev {
+        my ( $self, $udap ) = @_;
+        $udap->rev( $self->mac );
+    }
+
+    sub preset {
+        my ( $self, $udap, @arg ) = @_;
+        $udap->preset( $self->mac,  { data_to_set => { octet => { octet => $arg[0], seq => $self->seq } } } );
+    }
+
+    sub power {
+        my ( $self, $udap, @arg ) = @_;
+	$arg[0] = $arg[0] eq "off" ? 0 : 1;
+	$arg[0] = $arg[0] eq "on" ? 1 : 0;
+        $udap->set_power( $self->mac, { data_to_set => { octet => { octet => $arg[0], seq => $self->seq} } } );
+    }
+
+    sub volume {
+        my ( $self, $udap, @arg ) = @_;
+        $udap->set_volume( $self->mac, { data_to_set => { octet => { octet => $arg[0], seq => $self->seq} } } );
+    }
+
     sub modified_fields {
         my $self            = shift;
         my $modified_fields = {};
@@ -118,8 +150,8 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
                 and defined($oldval)
                 and $newval ne $oldval )
             {
+		$modified_fields->{$fieldname} = $newval;
             }
-            $modified_fields->{$fieldname} = $newval;
         }
         return $modified_fields;
     }

@@ -30,7 +30,8 @@ use Carp;
 use Data::Dumper;
 use Net::UDAP;
 use Net::UDAP::Constant;
-
+use Net::UDAP::Log;
+set_min_log_level("debug");
 $| = 1;
 
 # Set some values here to use later
@@ -43,16 +44,18 @@ $| = 1;
 # Create the socket
 my $udap = Net::UDAP->new;
 
-# Send the discovery packet
+# Send the discovery packet(s)
 
+$udap->discover( { advanced => 0 } );
 $udap->discover( { advanced => 1 } );
 
-# Get the hash of discovered devices
-my $discovered_devices_ref = $udap->device_list;
+# Get the list of discovered devices
+my @discovered_devices = $udap->device_list;
 
-if ($discovered_devices_ref) {
+if (@discovered_devices) {
+	print Dumper \@discovered_devices;
 
-	foreach my $device ( values %{$discovered_devices_ref} ) {
+	foreach my $device ( @discovered_devices ) {
 		$udap->set_ip(
 			{   mac => $device->mac,
 
@@ -64,7 +67,7 @@ if ($discovered_devices_ref) {
 			}
 		) if 0;
 
-		$udap->get_ip( { mac => $device->mac } ) if 0;
+		$udap->get_ip( $device->mac );
 
 		$udap->get_data(
 			{   mac         => $device->mac,
@@ -110,7 +113,6 @@ if ($discovered_devices_ref) {
 			}
 		) if 0;
 	}
-	print Dumper \$discovered_devices_ref;
 }
 
 # Set the IP and wireless information for the first device

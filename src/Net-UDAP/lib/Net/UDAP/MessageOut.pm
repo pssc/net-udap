@@ -106,12 +106,6 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
                         . ' msgs.' );
             }
 
-            ( $method eq UCP_METHOD_GET_IP ) && do {
-
-                # nothing further to do for get_ip
-                last SWITCH;
-            };
-
             ( $method eq UCP_METHOD_SET_IP ) && do {
 
                 # The following data is required:
@@ -125,10 +119,15 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
                 last SWITCH;
             };
 
-            ( $method eq UCP_METHOD_RESET ) && do {
-
-                # Nothing more to do for reset method
-
+            ( $method eq UCP_METHOD_PRESET or
+              $method eq UCP_METHOD_SET_VOLUME or
+	      $method eq UCP_METHOD_SET_POWER
+            ) && do {
+		# The following data is required:
+		# number
+		# seq
+                # Ought to validate the supplied data here
+                # Otherwise, nothing further to do.
                 last SWITCH;
             };
 
@@ -143,6 +142,16 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
 
                 # Should I validate any data here?
                 last SWITCH;
+            };
+
+	    ( $method eq UCP_METHOD_PAUSE or
+              $method eq UCP_METHOD_RESET or
+	      $method eq UCP_METHOD_FWD or
+	      $method eq UCP_METHOD_REV or
+              $method eq UCP_METHOD_GET_IP
+            ) && do {
+                # Nothing more to do
+		last SWITCH;
             };
 
             # default action if ucp_method value recognised
@@ -173,14 +182,16 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
         $str .= $method;
 
     SWITCH: {
-            (          ( $method eq UCP_METHOD_DISCOVER )
-                    or ( $method eq UCP_METHOD_ADV_DISCOVER )
-                    or ( $method eq UCP_METHOD_GET_IP )
-                    or ( $method eq UCP_METHOD_RESET )
-                )
-                && do {
-                last SWITCH;
-                };
+            (   ( $method eq UCP_METHOD_DISCOVER )
+                or ( $method eq UCP_METHOD_ADV_DISCOVER )
+                or ( $method eq UCP_METHOD_GET_IP )
+                or ( $method eq UCP_METHOD_RESET )
+                or ( $method eq UCP_METHOD_PAUSE )
+                or ( $method eq UCP_METHOD_FWD )
+                or ( $method eq UCP_METHOD_REV )
+            ) && do {
+		last SWITCH;
+            };
             ( $method eq UCP_METHOD_SET_IP ) && do {
 
                 # IP Address, Netmask, Gateway
@@ -238,8 +249,8 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
                 }
                 last SWITCH;
             };
+=pod
             ( $method eq UCP_METHOD_SET_IP ) && do {
-
                 # set_ip data is in the following format:
                 #  - ip address
                 #  - subnet mask
@@ -255,14 +266,29 @@ __PACKAGE__->mk_accessors( keys(%fields_default) );
                 }
                 last SWITCH;
             };
+=cut
+            ( $method eq UCP_METHOD_PRESET or
+              $method eq UCP_METHOD_SET_VOLUME or
+	      $method eq UCP_METHOD_SET_POWER
+            ) && do {
+		#  - octet
+		#  - seq
+		log(error => " no octet structure\n") if not exists $self->data_to_set->{octet};
+		my $dts = $self->data_to_set->{octet};
 
-            log(      error => '  msg method '
+		log(error => " no octet ".Dumper($dts)."\n") if not exists $dts->{octet};
+                $str .= pack('C',$dts->{octet});
+		$str .= pack('N',exists $dts->{seq} ? $dts->{seq} : 0 );
+                last SWITCH;
+            };
+
+            log(      error => 'Pack msg method '
                     . $ucp_method_name->{$method}
                     . " not implemented\n" );
             return;
         }
 
-        # print "packed msg in MessageOut.packed:\n" . hex2str( $str);
+        #log(  debug => "packed msg in MessageOut.packed:\n" . hex2str( $str));
         return $str;
     }
 }
